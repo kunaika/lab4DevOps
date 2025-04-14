@@ -1,26 +1,109 @@
 trigger:
-- main
+- master
 
-pool:
-  vmImage: 'ubuntu-latest'
 
 variables:
-  mavenOptions: '-Xmx3072m'
-  mavenPomFile: 'pom.xml'
-  javaVersion: '11'
+  buildConfiguration: 'Release'
+  JAVA_HOME: 'C:\Program Files\Java\jdk-21'  
 
 stages:
+# ------------------------------
+# CI - BUILD & TEST
+# ------------------------------
 - stage: Build
-  displayName: Build stage
+  displayName: 'Build and Test'
   jobs:
-  - job: MavenBuild
-    displayName: Maven Build Job
-    steps:
-    - task: Maven@3
-      displayName: 'Maven Build'
-      inputs:
-        mavenPomFile: '$(mavenPomFile)'
-        goals: 'clean package'
-        options: '$(mavenOptions)'
-        mavenOptions: '-Dmaven.java.version=$(JavaVersion)'
-        jdkVersionOption: '$(javaVersion)'
+    - job: Build
+      steps:
+        # Step 1: Checkout code from the repository
+        - checkout: self
+
+        # Step 2: Maven Build and Test
+        - task: Maven@3
+          inputs:
+            mavenPomFile: 'pom.xml'
+            goals: 'package'
+            options: '-DskipTests=false'
+            javaHomeOption: 'UserPath'
+            jdkVersionOption: '21'
+            mavenVersionOption: 'Default'
+            publishJUnitResults: true
+            testResultsFiles: '/surefire-reports/TEST-*.xml'
+            jdkDirectory: $(JAVA_HOME)  # Specify the JAVA_HOME manually for the Maven task
+         
+        - task: PublishCodeCoverageResults@1
+          displayName: 'Publish JaCoCo Code Coverage Report'
+          inputs:
+             codeCoverageTool: 'JaCoCo'
+             summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/target/site/jacoco/jacoco.xml'
+             reportDirectory: '$(System.DefaultWorkingDirectory)/**/target/site/jacoco'
+  
+        # Debugging: Check JAVA_HOME variable
+        - script: echo $(JAVA_HOME)
+          displayName: 'Check JAVA_HOME'
+
+       
+
+# ------------------------------
+# CD - DEPLOYMENT
+# ------------------------------
+- stage: Deliver
+  displayName: 'Deliver Artifacts'
+  dependsOn: Build
+  jobs:
+    - job: Deliver
+      steps:
+        - download: current
+          artifact: drop
+
+        - script: echo "Delivering artifact to the next stage"
+          displayName: 'Mock Deliver Step'
+
+# ------------------------------
+# CD - DEPLOYMENT
+# ------------------------------
+- stage: DeployToDev
+  displayName: 'Deploy to Dev Environment'
+  dependsOn: Deliver
+  jobs:
+    - job: DeployDev
+      steps:
+        # Debugging: List the contents of the target folder to verify JAR file existence
+        - script: dir "$(System.DefaultWorkingDirectory)\target" /s
+          displayName: 'List files in target directory'
+
+        # Step 1: Deploy the application to Dev Environment
+        - script: |
+            echo "Starting deployment to Dev Environment on port 8081"
+            start /B java -jar "$(System.DefaultWorkingDirectory)\target\DevOpsGroup4-0.0.1-SNAPSHOT.jar" --server.port=8081 --spring.profiles.active=dev
+          displayName: 'Deploy to Dev Port 8081'
+         
+
+       
+
+- stage: DeployToQAT
+  displayName: 'Deploy to QAT Environment'
+  dependsOn: DeployToDev
+  jobs:
+    - job: DeployQAT
+      steps:
+        - script: echo "Mock deployment to QAT Environment"
+          displayName: 'Deploy to QAT'
+
+- stage: DeployToStaging
+  displayName: 'Deploy to Staging Environment'
+  dependsOn: DeployToQAT
+  jobs:
+    - job: DeployStaging
+      steps:
+        - script: echo "Mock deployment to Staging Environment"
+          displayName: 'Deploy to Staging'
+
+- stage: DeployToProduction
+  displayName: 'Deploy to Production Environment'
+  dependsOn: DeployToStaging
+  jobs:
+    - job: DeployProd
+      steps:
+        - script: echo "Mock deployment to Production Environment"
+          displayName: 'Deploy to Production'
