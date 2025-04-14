@@ -18,18 +18,7 @@ stages:
         # Step 1: Checkout code from the repository
         - checkout: self
 
-        # Step 2: Maven Build and Test
-        - task: Maven@3
-          inputs:
-            mavenPomFile: 'pom.xml'
-            goals: 'package'
-            options: '-DskipTests=false'
-            javaHomeOption: 'UserPath'
-            jdkVersionOption: '21'
-            mavenVersionOption: 'Default'
-            publishJUnitResults: true
-            testResultsFiles: '/surefire-reports/TEST-*.xml'
-            jdkDirectory: $(JAVA_HOME)  # Specify the JAVA_HOME manually for the Maven task
+       
          
         - task: PublishCodeCoverageResults@1
           displayName: 'Publish JaCoCo Code Coverage Report'
