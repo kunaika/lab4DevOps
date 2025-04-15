@@ -59,13 +59,7 @@ stages:
   jobs:
   - job: DeliverJob
     displayName: 'Download artifact'
-    steps:
-    - download: current
-      artifact: $(artifactName)
-
-    - script: |
-        echo "Artifact downloaded to $(Pipeline.Workspace)/$(artifactName)"
-      displayName: 'Verify artifact download'
+    
 
 # 3. Deploy to Dev Environment (Disabled)
 - stage: DeployToDev
