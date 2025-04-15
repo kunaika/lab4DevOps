@@ -1,102 +1,58 @@
 trigger:
 - master
 
-variables:
-  buildConfiguration: 'Release'
-  JAVA_HOME: 'C:\Program Files\Java\jdk-21'  
-
 stages:
-# ------------------------------
-# CI - BUILD & TEST
-# ------------------------------
+# ----------- Build Stage -----------
 - stage: Build
-  displayName: 'Build and Test'
   jobs:
-    - job: Build
+    - job: BuildJob
       steps:
-        - checkout: self
+        - task: Maven@3
+          inputs:
+            mavenPomFile: 'pom.xml'
+            goals: 'clean install'
 
-       
         - task: PublishCodeCoverageResults@1
-          displayName: 'Publish JaCoCo Code Coverage Report'
           inputs:
             codeCoverageTool: 'JaCoCo'
-            summaryFileLocation: '$(System.DefaultWorkingDirectory)/target/site/jacoco/jacoco.xml'
-            reportDirectory: '$(System.DefaultWorkingDirectory)/target/site/jacoco'
+            summaryFileLocation: 'target/site/jacoco/jacoco.xml'
+            reportDirectory: 'target/site/jacoco'
 
-        - script: echo $(JAVA_HOME)
-          displayName: 'Check JAVA_HOME'
-
-        - publish: $(System.DefaultWorkingDirectory)/target
+        - publish: target
           artifact: drop
 
-# ------------------------------
-# CD - DELIVER ARTIFACTS
-# ------------------------------
-- stage: Deliver
-  displayName: 'Deliver Artifacts'
+# ----------- Deploy to Dev -----------
+- stage: DeployDev
   dependsOn: Build
   jobs:
-    - job: Deliver
+    - job: DeployDevJob
       steps:
         - download: current
           artifact: drop
-
-        - script: echo "Artifact delivered successfully to be used in deployment stages"
-          displayName: 'Mock Deliver Step'
-
-# ------------------------------
-# CD - DEPLOY TO DEV
-# ------------------------------
-- stage: DeployToDev
-  displayName: 'Deploy to Dev Environment'
-  dependsOn: Deliver
-  jobs:
-    - job: DeployDev
-      steps:
-        - download: current
-          artifact: drop
-
-        - script: dir "$(Pipeline.Workspace)\drop" /s
-          displayName: 'List artifact files'
 
         - script: |
-            echo "Deploying to Dev Environment on port 8081"
-            java -jar "$(Pipeline.Workspace)\drop\DevOpsGroup4-0.0.1-SNAPSHOT.jar" --server.port=8081 --spring.profiles.active=dev
-          displayName: 'Run JAR on Port 8081'
+            echo "Deploying to Dev on port 8081..."
+            java -jar drop/DevOpsGroup4-0.0.1-SNAPSHOT.jar --server.port=8081
+          displayName: 'Run App in Dev'
 
-# ------------------------------
-# CD - DEPLOY TO QAT
-# ------------------------------
-- stage: DeployToQAT
-  displayName: 'Deploy to QAT Environment'
-  dependsOn: DeployToDev
+# ----------- Mock QAT, Staging, Prod -----------
+- stage: QAT
+  dependsOn: DeployDev
   jobs:
-    - job: DeployQAT
+    - job: QATJob
       steps:
-        - script: echo "Mock deployment to QAT Environment"
-          displayName: 'Deploy to QAT'
+        - script: echo "Deployed to QAT"
 
-# ------------------------------
-# CD - DEPLOY TO STAGING
-# ------------------------------
-- stage: DeployToStaging
-  displayName: 'Deploy to Staging Environment'
-  dependsOn: DeployToQAT
+- stage: Staging
+  dependsOn: QAT
   jobs:
-    - job: DeployStaging
+    - job: StagingJob
       steps:
-        - script: echo "Mock deployment to Staging Environment"
-          displayName: 'Deploy to Staging'
+        - script: echo "Deployed to Staging"
 
-# ------------------------------
-# CD - DEPLOY TO PRODUCTION
-# ------------------------------
-- stage: DeployToProduction
-  displayName: 'Deploy to Production Environment'
-  dependsOn: DeployToStaging
+- stage: Production
+  dependsOn: Staging
   jobs:
-    - job: DeployProd
+    - job: ProdJob
       steps:
-        - script: echo "Mock deployment to Production Environment"
-          displayName: 'Deploy to Production'
+        - script: echo "Deployed to Production"
