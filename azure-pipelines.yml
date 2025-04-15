@@ -23,8 +23,7 @@ stages:
   jobs:
     - job: DeployDevJob
       steps:
-        - download: current
-          artifact: drop
+       
 
         - script: |
             echo "Deploying to Dev on port 8081..."
