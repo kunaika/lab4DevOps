@@ -16,16 +16,7 @@ stages:
       steps:
         - checkout: self
 
-        - task: Maven@3
-          displayName: 'Build with Maven'
-          inputs:
-            mavenPomFile: 'pom.xml'
-            goals: 'clean install'
-            javaHomeOption: 'JDKVersion'
-            jdkVersionOption: '1.11'
-            mavenOptions: '-Xmx1024m'
-            publishJUnitResults: true
-
+       
         - task: PublishCodeCoverageResults@1
           displayName: 'Publish JaCoCo Code Coverage Report'
           inputs:
