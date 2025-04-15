@@ -7,6 +7,10 @@ pool:
 variables:
   artifactName: 'my-app-artifact'
   buildConfiguration: 'Release'
+  azureDevAppName: 'my-dev-app'
+  azureQAAppName: 'my-qa-app'
+  azureStagingAppName: 'my-staging-app'
+  azureProdAppName: 'my-prod-app'
 
 stages:
 
@@ -60,8 +64,11 @@ stages:
   - job: DeliverJob
     displayName: 'Release artifact'
     steps:
-    - download: current
-      artifact: $(artifactName)
+    - task: DownloadPipelineArtifact@2
+      displayName: 'Download artifact'
+      inputs:
+        artifactName: $(artifactName)
+        targetPath: $(Pipeline.Workspace)
 
 # 3. Deploy to Dev Environment
 - stage: DeployToDev
