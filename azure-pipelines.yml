@@ -7,10 +7,7 @@ stages:
   jobs:
     - job: BuildJob
       steps:
-        - task: Maven@3
-          inputs:
-            mavenPomFile: 'pom.xml'
-            goals: 'clean install'
+        
 
         - task: PublishCodeCoverageResults@1
           inputs:
