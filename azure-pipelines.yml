@@ -7,10 +7,6 @@ pool:
 variables:
   artifactName: 'my-app-artifact'
   buildConfiguration: 'Release'
-  azureDevAppName: 'my-dev-app'
-  azureQAAppName: 'my-qa-app'
-  azureStagingAppName: 'my-staging-app'
-  azureProdAppName: 'my-prod-app'
 
 stages:
 
@@ -64,11 +60,8 @@ stages:
   - job: DeliverJob
     displayName: 'Release artifact'
     steps:
-    - task: DownloadPipelineArtifact@2
-      displayName: 'Download artifact'
-      inputs:
-        artifactName: $(artifactName)
-        targetPath: $(Pipeline.Workspace)
+    - download: current
+      artifact: $(artifactName)
 
 # 3. Deploy to Dev Environment
 - stage: DeployToDev
@@ -76,15 +69,12 @@ stages:
   dependsOn: Deliver
   jobs:
   - job: DeployDevJob
-    displayName: 'Deploy artifact to Dev'
+    displayName: 'Simulate Deployment to Dev'
     steps:
-    - task: AzureWebApp@1
-      displayName: 'Deploy to Azure Dev Environment'
-      inputs:
-        appName: '$(azureDevAppName)'
-        package: $(Pipeline.Workspace)/$(artifactName)/*.zip
-        deploymentMethod: 'auto'
-        appSettings: '-key value'
+    - script: |
+        echo "Simulating deployment to Dev Environment"
+        echo "Would deploy artifact from: $(Pipeline.Workspace)/$(artifactName)"
+      displayName: 'Simulate Deploy to Dev'
 
 # 4. Deploy to QA Environment
 - stage: DeployToQA
@@ -92,15 +82,12 @@ stages:
   dependsOn: DeployToDev
   jobs:
   - job: DeployQAJob
-    displayName: 'Deploy artifact to QA'
+    displayName: 'Simulate Deployment to QA'
     steps:
-    - task: AzureWebApp@1
-      displayName: 'Deploy to Azure QA Environment'
-      inputs:
-        appName: '$(azureQAAppName)'
-        package: $(Pipeline.Workspace)/$(artifactName)/*.zip
-        deploymentMethod: 'auto'
-        appSettings: '-key value'
+    - script: |
+        echo "Simulating deployment to QA Environment"
+        echo "Would deploy artifact from: $(Pipeline.Workspace)/$(artifactName)"
+      displayName: 'Simulate Deploy to QA'
 
 # 5. Deploy to Staging Environment
 - stage: DeployToStaging
@@ -108,15 +95,12 @@ stages:
   dependsOn: DeployToQA
   jobs:
   - job: DeployStagingJob
-    displayName: 'Deploy artifact to Staging'
+    displayName: 'Simulate Deployment to Staging'
     steps:
-    - task: AzureWebApp@1
-      displayName: 'Deploy to Azure Staging Environment'
-      inputs:
-        appName: '$(azureStagingAppName)'
-        package: $(Pipeline.Workspace)/$(artifactName)/*.zip
-        deploymentMethod: 'auto'
-        appSettings: '-key value'
+    - script: |
+        echo "Simulating deployment to Staging Environment"
+        echo "Would deploy artifact from: $(Pipeline.Workspace)/$(artifactName)"
+      displayName: 'Simulate Deploy to Staging'
 
 # 6. Deploy to Production Environment
 - stage: DeployToProd
@@ -124,12 +108,9 @@ stages:
   dependsOn: DeployToStaging
   jobs:
   - job: DeployProdJob
-    displayName: 'Deploy artifact to Production'
+    displayName: 'Simulate Deployment to Production'
     steps:
-    - task: AzureWebApp@1
-      displayName: 'Deploy to Azure Production Environment'
-      inputs:
-        appName: '$(azureProdAppName)'
-        package: $(Pipeline.Workspace)/$(artifactName)/*.zip
-        deploymentMethod: 'auto'
-        appSettings: '-key value'
+    - script: |
+        echo "Simulating deployment to Production Environment"
+        echo "Would deploy artifact from: $(Pipeline.Workspace)/$(artifactName)"
+      displayName: 'Simulate Deploy to Production'
