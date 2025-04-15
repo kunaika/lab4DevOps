@@ -23,13 +23,13 @@ stages:
         packageType: 'sdk'
         version: '8.x'
         installationPath: $(Agent.ToolsDirectory)/dotnet
-      
+
     - task: DotNetCoreCLI@2
       displayName: 'Restore dependencies'
       inputs:
         command: 'restore'
         projects: '**/*.csproj'
-      
+
     - task: DotNetCoreCLI@2
       displayName: 'Build the project'
       inputs:
@@ -44,73 +44,69 @@ stages:
         projects: '**/*.csproj'
         publishWebProjects: false
         arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(artifactName)'
-        
+
     - task: PublishBuildArtifacts@1
       displayName: 'Publish artifact'
       inputs:
-        PathtoPublish: $(Build.ArtifactStagingDirectory)/$(artifactName)
-        ArtifactName: $(artifactName)
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/$(artifactName)'
+        ArtifactName: '$(artifactName)'
         publishLocation: 'Container'
 
 # 2. Deliver Stage
 - stage: Deliver
-  displayName: 'Release artifact to deploy'
+  displayName: 'Download artifact for deployment'
   dependsOn: Build
   jobs:
   - job: DeliverJob
-    displayName: 'Release artifact'
+    displayName: 'Download artifact'
     steps:
     - download: current
       artifact: $(artifactName)
 
-# 3. Deploy to Dev Environment
+    - script: |
+        echo "Artifact downloaded to $(Pipeline.Workspace)/$(artifactName)"
+      displayName: 'Verify artifact download'
+
+# 3. Deploy to Dev Environment (Disabled)
 - stage: DeployToDev
-  displayName: 'Deploy to Dev Environment'
+  displayName: 'Deploy to Dev Environment (skipped)'
   dependsOn: Deliver
+  condition: false  # disables this stage
   jobs:
   - job: DeployDevJob
-    displayName: 'Simulate Deployment to Dev'
+    displayName: 'Dev Deployment Placeholder'
     steps:
-    - script: |
-        echo "Simulating deployment to Dev Environment"
-        echo "Would deploy artifact from: $(Pipeline.Workspace)/$(artifactName)"
-      displayName: 'Simulate Deploy to Dev'
+    - script: echo "Skipped Dev deployment."
 
-# 4. Deploy to QA Environment
+# 4. Deploy to QA Environment (Disabled)
 - stage: DeployToQA
-  displayName: 'Deploy to QA Environment'
+  displayName: 'Deploy to QA Environment (skipped)'
   dependsOn: DeployToDev
+  condition: false
   jobs:
   - job: DeployQAJob
-    displayName: 'Simulate Deployment to QA'
+    displayName: 'QA Deployment Placeholder'
     steps:
-    - script: |
-        echo "Simulating deployment to QA Environment"
-        echo "Would deploy artifact from: $(Pipeline.Workspace)/$(artifactName)"
-      displayName: 'Simulate Deploy to QA'
+    - script: echo "Skipped QA deployment."
 
-# 5. Deploy to Staging Environment
+# 5. Deploy to Staging Environment (Disabled)
 - stage: DeployToStaging
-  displayName: 'Deploy to Staging Environment'
+  displayName: 'Deploy to Staging Environment (skipped)'
   dependsOn: DeployToQA
+  condition: false
   jobs:
   - job: DeployStagingJob
-    displayName: 'Simulate Deployment to Staging'
+    displayName: 'Staging Deployment Placeholder'
     steps:
-    - script: |
-        echo "Simulating deployment to Staging Environment"
-        echo "Would deploy artifact from: $(Pipeline.Workspace)/$(artifactName)"
-      displayName: 'Simulate Deploy to Staging'
+    - script: echo "Skipped Staging deployment."
 
-# 6. Deploy to Production Environment
+# 6. Deploy to Production Environment (Disabled)
 - stage: DeployToProd
-  displayName: 'Deploy to Production Environment'
+  displayName: 'Deploy to Production Environment (skipped)'
   dependsOn: DeployToStaging
+  condition: false
   jobs:
   - job: DeployProdJob
-    displayName: 'Simulate Deployment to Production'
+    displayName: 'Production Deployment Placeholder'
     steps:
-    - script: |
-        echo "Simulating deployment to Production Environment"
-        echo "Would deploy artifact from: $(Pipeline.Workspace)/$(artifactName)"
-      displayName: 'Simulate Deploy to Production'
+    - script: echo "Skipped Production deployment."
