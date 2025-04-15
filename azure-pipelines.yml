@@ -1,53 +1,128 @@
 trigger:
-- master
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  artifactName: 'my-app-artifact'
+  buildConfiguration: 'Release'
 
 stages:
-# ----------- Build Stage -----------
+
+# 1. Build Stage
 - stage: Build
+  displayName: 'Build the project'
   jobs:
-    - job: BuildJob
-      steps:
+  - job: BuildJob
+    displayName: 'Build the project artifact'
+    steps:
+    - task: UseDotNet@2
+      displayName: 'Install .NET SDK'
+      inputs:
+        packageType: 'sdk'
+        version: '6.x'
+        installationPath: $(Agent.ToolsDirectory)/dotnet
+      
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore dependencies'
+      inputs:
+        command: 'restore'
+        projects: '**/*.csproj'
+      
+    - task: DotNetCoreCLI@2
+      displayName: 'Build the project'
+      inputs:
+        command: 'build'
+        projects: '**/*.csproj'
+        arguments: '--configuration $(buildConfiguration)'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Publish the project'
+      inputs:
+        command: 'publish'
+        projects: '**/*.csproj'
+        publishWebProjects: false
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/$(artifactName)'
         
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish artifact'
+      inputs:
+        PathtoPublish: $(Build.ArtifactStagingDirectory)/$(artifactName)
+        ArtifactName: $(artifactName)
+        publishLocation: 'Container'
 
-        - task: PublishCodeCoverageResults@1
-          inputs:
-            codeCoverageTool: 'JaCoCo'
-            summaryFileLocation: 'target/site/jacoco/jacoco.xml'
-            reportDirectory: 'target/site/jacoco'
-
-       
-
-# ----------- Deploy to Dev -----------
-- stage: DeployDev
+# 2. Deliver Stage
+- stage: Deliver
+  displayName: 'Release artifact to deploy'
   dependsOn: Build
   jobs:
-    - job: DeployDevJob
-      steps:
-       
+  - job: DeliverJob
+    displayName: 'Release artifact'
+    steps:
+    - download: current
+      artifact: $(artifactName)
 
-        - script: |
-            echo "Deploying to Dev on port 8081..."
-            java -jar drop/DevOpsGroup4-0.0.1-SNAPSHOT.jar --server.port=8081
-          displayName: 'Run App in Dev'
-
-# ----------- Mock QAT, Staging, Prod -----------
-- stage: QAT
-  dependsOn: DeployDev
+# 3. Deploy to Dev Environment
+- stage: DeployToDev
+  displayName: 'Deploy to Dev Environment'
+  dependsOn: Deliver
   jobs:
-    - job: QATJob
-      steps:
-        - script: echo "Deployed to QAT"
+  - job: DeployDevJob
+    displayName: 'Deploy artifact to Dev'
+    steps:
+    - task: AzureWebApp@1
+      displayName: 'Deploy to Azure Dev Environment'
+      inputs:
+        appName: '$(azureDevAppName)'
+        package: $(Pipeline.Workspace)/$(artifactName)/*.zip
+        deploymentMethod: 'auto'
+        appSettings: '-key value'
 
-- stage: Staging
-  dependsOn: QAT
+# 4. Deploy to QA Environment
+- stage: DeployToQA
+  displayName: 'Deploy to QA Environment'
+  dependsOn: DeployToDev
   jobs:
-    - job: StagingJob
-      steps:
-        - script: echo "Deployed to Staging"
+  - job: DeployQAJob
+    displayName: 'Deploy artifact to QA'
+    steps:
+    - task: AzureWebApp@1
+      displayName: 'Deploy to Azure QA Environment'
+      inputs:
+        appName: '$(azureQAAppName)'
+        package: $(Pipeline.Workspace)/$(artifactName)/*.zip
+        deploymentMethod: 'auto'
+        appSettings: '-key value'
 
-- stage: Production
-  dependsOn: Staging
+# 5. Deploy to Staging Environment
+- stage: DeployToStaging
+  displayName: 'Deploy to Staging Environment'
+  dependsOn: DeployToQA
   jobs:
-    - job: ProdJob
-      steps:
-        - script: echo "Deployed to Production"
+  - job: DeployStagingJob
+    displayName: 'Deploy artifact to Staging'
+    steps:
+    - task: AzureWebApp@1
+      displayName: 'Deploy to Azure Staging Environment'
+      inputs:
+        appName: '$(azureStagingAppName)'
+        package: $(Pipeline.Workspace)/$(artifactName)/*.zip
+        deploymentMethod: 'auto'
+        appSettings: '-key value'
+
+# 6. Deploy to Production Environment
+- stage: DeployToProd
+  displayName: 'Deploy to Production Environment'
+  dependsOn: DeployToStaging
+  jobs:
+  - job: DeployProdJob
+    displayName: 'Deploy artifact to Production'
+    steps:
+    - task: AzureWebApp@1
+      displayName: 'Deploy to Azure Production Environment'
+      inputs:
+        appName: '$(azureProdAppName)'
+        package: $(Pipeline.Workspace)/$(artifactName)/*.zip
+        deploymentMethod: 'auto'
+        appSettings: '-key value'
